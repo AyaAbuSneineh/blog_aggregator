@@ -1,10 +1,8 @@
 import { setUser, readConfig } from "./config.js";
-import {CommandsRegistry,registerCommand,runCommand,handlerLogin} from "./commands.js";
+import {CommandsRegistry,registerCommand,runCommand,handlerLogin, handlerRegister} from "./commands.js";
 
-function main() {
+async function main() {
   const registry: CommandsRegistry = [];
-
-  registerCommand(registry, "login", handlerLogin);
 
   const args = process.argv.slice(2); // the 2 elements for node and the script name 
 
@@ -13,13 +11,18 @@ function main() {
     process.exit(1);
   }
   const [cmdName, ...cmdArgs] = args; // array destructuring)
+  registerCommand(registry, "login", handlerLogin);
+  registerCommand(registry, "register",handlerRegister);
 
   try {
-    runCommand(registry,cmdName,...cmdArgs);
+    await runCommand(registry,cmdName,...cmdArgs);
+    process.exit(0);
   } catch(error){
-      console.error((error as Error).message);
+      console.error(error);
     process.exit(1);
   }
+
+
 
   //setUser("Aya");
   //const cfg = readConfig();
