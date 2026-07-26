@@ -15,6 +15,20 @@
       "when": 1785073017020,
       "tag": "0001_bizarre_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785087268101,
+      "tag": "0002_jittery_ben_grimm",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785087600488,
+      "tag": "0003_shallow_stick",
+      "breakpoints": true
     }
   ]
 }

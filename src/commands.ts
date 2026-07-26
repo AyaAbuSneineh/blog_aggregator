@@ -1,8 +1,9 @@
 import { setUser , readConfig} from "./config.js";
-import { allFeeds, createFeed } from "./lib/db/queries/feeds.js";
+import { allFeeds, createFeed , getFeedByUrl} from "./lib/db/queries/feeds.js";
 import { createUser, getUserByName ,deleteAllUsers , getUsers} from "./lib/db/queries/users.js";
 import { fetchFeed } from "./lib/rss/fetchFeed.js";
 import type {Feed , User} from "./lib/db/schema.js"
+import {createFeedFollow , getFeedFollowsForUser } from "./lib/db/queries/feed_follow.js";
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; // function type
 export type CommandEntry = [cmdName: string, handler: CommandHandler]; // tuple type
@@ -99,6 +100,10 @@ export async function handlerAddFeed (cmdName : string , ...args:string[]){
     throw new Error("Current user not found");
   }  
   const feed = await createFeed(name, url, userResult.id)
+  const follow = await createFeedFollow(userResult.id,feed.id);
+
+
+  console.log(`${follow.userName} is following ${follow.feedName}`);
 
   printFeed(feed, userResult);
 }
@@ -121,4 +126,43 @@ export async function handlerFeeds(cmdName : string, ...args : string[]){
     console.log(`  User: ${feed.userName}`);
   }
   
+}
+
+export async function handlerFollow(cmdName : string, ...args : string[]){
+
+  if (args.length != 1) {
+    throw new Error(`usage: ${cmdName} <url>`);
+  }
+  const url = args[0]
+  const config = readConfig() ;
+  const user = await getUserByName(config.currentUserName) ;
+  if (!user) {
+    throw new Error(`User not found`);
+  }
+  const feeds  =  await getFeedByUrl(url)
+  
+  if (feeds.length === 0) {
+    throw new Error("Feed not found");
+  }
+  const feed = feeds[0] ;
+  const follow = await createFeedFollow(user.id, feed.id);
+  console.log(`${follow.userName} is following ${follow.feedName}`)
+  
+}
+
+export async function handlerFollowing(cmdName : string, ...args : string[]) {
+  if (args.length != 0) {
+    throw new Error (`usage: ${cmdName}`)
+  }
+  const config = readConfig() ;
+  const users = await getUserByName(config.currentUserName)
+  if (!users) {
+    throw new Error("User not found");
+  }
+  const follows = await getFeedFollowsForUser(users.id)
+  for (const follow of follows) {
+    console.log(`* ${follow.feedName}`);
+  }
+  
+
 }
