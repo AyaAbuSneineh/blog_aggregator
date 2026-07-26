@@ -1,5 +1,6 @@
 import { getNextFeedToFetch, markFeedFetched } from "./feeds.js";
 import { fetchFeed } from "../../rss/fetchFeed.js";
+import {createPost} from "./posts.js";
 
 export async function scrapeFeeds() {
   const feed = await getNextFeedToFetch();
@@ -15,6 +16,12 @@ export async function scrapeFeeds() {
   await markFeedFetched(feed.id);
 
   for (const item of rssFeed.items) {
-    console.log(item.title);
+    await createPost(item.title,
+        item.link,
+        item.description ?? null,
+        item.pubDate ? new Date(item.pubDate) : null,
+        feed.id
+    );
   }
+  
 }

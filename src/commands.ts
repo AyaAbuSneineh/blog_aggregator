@@ -6,7 +6,7 @@ import type {Feed , User} from "./lib/db/schema.js"
 import {createFeedFollow , getFeedFollowsForUser ,deleteFeedFollowByUserAndUrl } from "./lib/db/queries/feed_follow.js";
 import { scrapeFeeds } from "./lib/db/queries/aggregator.js";
 import {parseDuration} from "./utils.js"
-
+import {getPostsForUser} from "./lib/db/queries/posts.js";
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; // function type
 export type CommandEntry = [cmdName: string, handler: CommandHandler]; // tuple type
 export type CommandsRegistry =CommandEntry[];    // array of tuples
@@ -192,4 +192,22 @@ export async function handlerUnfollow(cmdName: string,user: User,...args: string
   const url = args[0];
   await deleteFeedFollowByUserAndUrl(user.id,url);
   console.log("Unfollowed successfully!");
+}
+export async function handlerBrowse(cmdName:string,user:User,...args:string[]){
+  let limit = 2;
+  if(args.length > 1){
+    throw new Error(`usage: ${cmdName} [limit]`);
+  }
+
+  if(args.length === 1){
+    limit = Number(args[0]);
+  }
+  const posts = await getPostsForUser(user.id,limit);
+
+  for(const post of posts){
+    console.log(post.title);
+    console.log(post.url);
+    console.log("");
+  }
+
 }
