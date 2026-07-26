@@ -6,7 +6,7 @@ export async function createFeedFollow(userId: string,feedId: string) {
     const [newFeedFollow] = await db.insert(feedFollows).values({userId , feedId}).returning();
     const [result] = await db.select({id: feedFollows.id,
     createdAt: feedFollows.createdAt,
-    updatedAt: feedFollows.updateAt,
+    updatedAt: feedFollows.updatedAt,
     userName: users.name,
     feedName: feeds.name,})
     .from(feedFollows)
@@ -20,7 +20,7 @@ export async function getFeedFollowsForUser(userId: string) {
     const result = await db.select({
       id: feedFollows.id,
       createdAt: feedFollows.createdAt,
-      updatedAt: feedFollows.updateAt,
+      updatedAt: feedFollows.updatedAt,
       userName: users.name,
       feedName: feeds.name,
       feedUrl: feeds.url,
