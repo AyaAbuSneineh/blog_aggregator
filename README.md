@@ -17,4 +17,4 @@ Before running Gator, make sure you have:
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/blog_aggregator.git
+git https://github.com/AyaAbuSneineh/blog_aggregator.git 
