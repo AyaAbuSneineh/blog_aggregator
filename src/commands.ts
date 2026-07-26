@@ -3,11 +3,14 @@ import { allFeeds, createFeed , getFeedByUrl} from "./lib/db/queries/feeds.js";
 import { createUser, getUserByName ,deleteAllUsers , getUsers} from "./lib/db/queries/users.js";
 import { fetchFeed } from "./lib/rss/fetchFeed.js";
 import type {Feed , User} from "./lib/db/schema.js"
-import {createFeedFollow , getFeedFollowsForUser } from "./lib/db/queries/feed_follow.js";
+import {createFeedFollow , getFeedFollowsForUser ,deleteFeedFollowByUserAndUrl } from "./lib/db/queries/feed_follow.js";
+
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; // function type
 export type CommandEntry = [cmdName: string, handler: CommandHandler]; // tuple type
 export type CommandsRegistry =CommandEntry[];    // array of tuples
+
+export type UserCommandHandler = (cmdName: string,user: User,...args: string[]) => Promise<void>;
 
 // we use this function to verify username is provided and set the user
 export async function handlerLogin(cmdName: string, ...args: string[]){
@@ -89,23 +92,18 @@ export async function handlerAgg(cmdName : string , ...args:string[]) {
   const feed = await fetchFeed("https://www.wagslane.dev/index.xml") ;
   console.log(feed);
 }
-export async function handlerAddFeed (cmdName : string , ...args:string[]){
+export async function handlerAddFeed (cmdName : string , user:User,...args:string[]){
   if (args.length != 2) {
     throw new Error (`usage: ${cmdName} <name> <url>`)
   }
   const [name , url] = args ;
-  const config = readConfig();
-  const userResult = await getUserByName(config.currentUserName);
-  if (!userResult) {
-    throw new Error("Current user not found");
-  }  
-  const feed = await createFeed(name, url, userResult.id)
-  const follow = await createFeedFollow(userResult.id,feed.id);
+  const feed = await createFeed(name, url, user.id)
+  const follow = await createFeedFollow(user.id,feed.id);
 
 
   console.log(`${follow.userName} is following ${follow.feedName}`);
 
-  printFeed(feed, userResult);
+  printFeed(feed, user);
 }
 
 export function printFeed(feed : Feed , user : User) {
@@ -128,17 +126,12 @@ export async function handlerFeeds(cmdName : string, ...args : string[]){
   
 }
 
-export async function handlerFollow(cmdName : string, ...args : string[]){
+export async function handlerFollow(cmdName : string, user:User,...args : string[]){
 
   if (args.length != 1) {
     throw new Error(`usage: ${cmdName} <url>`);
   }
   const url = args[0]
-  const config = readConfig() ;
-  const user = await getUserByName(config.currentUserName) ;
-  if (!user) {
-    throw new Error(`User not found`);
-  }
   const feeds  =  await getFeedByUrl(url)
   
   if (feeds.length === 0) {
@@ -150,19 +143,35 @@ export async function handlerFollow(cmdName : string, ...args : string[]){
   
 }
 
-export async function handlerFollowing(cmdName : string, ...args : string[]) {
+export async function handlerFollowing(cmdName : string, user:User,...args : string[]) {
   if (args.length != 0) {
     throw new Error (`usage: ${cmdName}`)
   }
-  const config = readConfig() ;
-  const users = await getUserByName(config.currentUserName)
-  if (!users) {
-    throw new Error("User not found");
-  }
-  const follows = await getFeedFollowsForUser(users.id)
+  const follows = await getFeedFollowsForUser(user.id)
   for (const follow of follows) {
     console.log(`* ${follow.feedName}`);
   }
   
+}
 
+
+export function middlewareLoggedIn(handler: UserCommandHandler): CommandHandler {
+
+  return async function(cmdName: string, ...args: string[]) {
+    const config = readConfig();
+    const user = await getUserByName(config.currentUserName);
+    if (!user) {
+      throw new Error(`User ${config.currentUserName} not found`);
+    }
+    await handler(cmdName, user, ...args);
+  };
+}
+
+export async function handlerUnfollow(cmdName: string,user: User,...args: string[]) {
+  if (args.length !== 1) {
+    throw new Error(`usage: ${cmdName} <url>`);
+  }
+  const url = args[0];
+  await deleteFeedFollowByUserAndUrl(user.id,url);
+  console.log("Unfollowed successfully!");
 }

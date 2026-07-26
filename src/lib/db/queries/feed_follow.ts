@@ -1,6 +1,6 @@
 import { db } from "..";
 import { feedFollows, feeds, users } from "../schema";
-import { eq } from "drizzle-orm";
+import { eq , and} from "drizzle-orm";
 
 export async function createFeedFollow(userId: string,feedId: string) {
     const [newFeedFollow] = await db.insert(feedFollows).values({userId , feedId}).returning();
@@ -30,4 +30,29 @@ export async function getFeedFollowsForUser(userId: string) {
     .innerJoin(feeds,eq(feeds.id,feedFollows.feedId))
     .where(eq(feedFollows.userId,userId)) ;
     return result ;
+}
+
+/*export async function deleteFeedFollowByUserAndUrl(userId : string,url:string){
+    const follow = await db.select({id : feedFollows.id}) 
+    .from(feedFollows)
+    .innerJoin(users,eq(feedFollows.userId,userId))
+    .where(and(eq(feedFollows.userId,userId),eq(feeds.url,url))) ;
+    if (follow.length === 0) {
+        throw new Error("Feed follow not found");
+    }
+    await db.delete(feedFollows)
+    .where(eq(feedFollows.id,follow[0].id)) ;
+
+}*/
+export async function deleteFeedFollowByUserAndUrl(userId: string,url: string) {
+  const follow = await db.select({id: feedFollows.id,})
+    .from(feedFollows)
+    .innerJoin(feeds,eq(feedFollows.feedId, feeds.id))
+    .where(and(eq(feedFollows.userId, userId),eq(feeds.url, url)));
+
+  if (follow.length === 0) {
+    throw new Error("Feed follow not found");
+  }
+  await db.delete(feedFollows)
+    .where(eq(feedFollows.id, follow[0].id));
 }
