@@ -10,3 +10,10 @@ export async function getUserByName(name : string) {
     const [user] = await db.select().from(users).where(eq(users.name, name));
     return user ;
 }
+export async function deleteAllUsers() {
+  await db.delete(users).execute()
+}
+export async function getUsers() {
+  const allUsers = await db.select().from(users);
+  return allUsers;
+}

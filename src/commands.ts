@@ -1,5 +1,8 @@
-import { setUser} from "./config.js";
-import { createUser, getUserByName } from "./lib/db/queries/users.js";
+import { setUser , readConfig} from "./config.js";
+import { allFeeds, createFeed } from "./lib/db/queries/feeds.js";
+import { createUser, getUserByName ,deleteAllUsers , getUsers} from "./lib/db/queries/users.js";
+import { fetchFeed } from "./lib/rss/fetchFeed.js";
+import type {Feed , User} from "./lib/db/schema.js"
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>; // function type
 export type CommandEntry = [cmdName: string, handler: CommandHandler]; // tuple type
@@ -51,4 +54,71 @@ export async function handlerRegister(cmdName: string, ...args: string[]) {
 
   setUser(user.name);
   console.log("User created successfully!");
+}
+
+export async function handlerReset(cmdName: string, ...args: string[]) {
+  if (args.length != 0) {
+    throw new Error(`usage: ${cmdName}`);
+  }
+  await deleteAllUsers();
+  console.log("All users deleted successfully!");
+}
+
+export async function handlerAllUsers(cmdName: string, ...args: string[]) {
+  if (args.length != 0) {
+    throw new Error(`usage: ${cmdName}`);
+  }
+
+  const users = await getUsers()
+  if (users.length === 0) {
+    console.log("No users found.");
+  }
+  const currentUser = readConfig().currentUserName
+  for (const user of users) {
+    if (user.name === currentUser){
+      console.log(`* ${user.name} (current)`);
+    }
+    else {
+      console.log(`* ${user.name}`);
+    }
+  }
+}
+
+export async function handlerAgg(cmdName : string , ...args:string[]) {
+  const feed = await fetchFeed("https://www.wagslane.dev/index.xml") ;
+  console.log(feed);
+}
+export async function handlerAddFeed (cmdName : string , ...args:string[]){
+  if (args.length != 2) {
+    throw new Error (`usage: ${cmdName} <name> <url>`)
+  }
+  const [name , url] = args ;
+  const config = readConfig();
+  const userResult = await getUserByName(config.currentUserName);
+  if (!userResult) {
+    throw new Error("Current user not found");
+  }  
+  const feed = await createFeed(name, url, userResult.id)
+
+  printFeed(feed, userResult);
+}
+
+export function printFeed(feed : Feed , user : User) {
+  console.log(`Feed : Name  = ${feed.name} , url = ${feed.url} , user = ${user.name}`);
+}
+
+export async function handlerFeeds(cmdName : string, ...args : string[]){
+  if (args.length != 0) {
+    throw new Error (`usage: ${cmdName}`)
+  }
+  const feeds = await allFeeds() ;
+  if (feeds.length === 0) {
+    console.log(`No feeds found`)
+  }
+  for (const feed of feeds ) {
+    console.log(`* ${feed.name}`);
+    console.log(`  URL: ${feed.url}`);
+    console.log(`  User: ${feed.userName}`);
+  }
+  
 }
